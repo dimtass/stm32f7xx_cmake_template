@@ -7,16 +7,16 @@ endif()
 
 set(FREERTOS_INC_DIR
     ${FREERTOS_DIR}/include
-    ${FREERTOS_DIR}/portable/GCC/ARM_CM3
+    ${FREERTOS_DIR}/portable/GCC/ARM_CM7/r0p1
 )
 
 include_directories(
-    ${CMAKE_SOURCE_DIR}/config # That's for including the FreeRTOSConfig.h
     ${FREERTOS_INC_DIR}
+    ${CMAKE_SOURCE_DIR}/config # That's for including the FreeRTOSConfig.h
 )
 
 set(FREERTOS_LIB_SRC
-    ${FREERTOS_DIR}/portable/GCC/ARM_CM3/port.c
+    ${FREERTOS_DIR}/portable/GCC/ARM_CM7/r0p1/port.c
     ${FREERTOS_DIR}/portable/MemMang/heap_1.c
     ${FREERTOS_DIR}/portable/MemMang/heap_2.c
     ${FREERTOS_DIR}/portable/MemMang/heap_3.c
@@ -33,7 +33,7 @@ set(FREERTOS_LIB_SRC
 )
 
 set_source_files_properties(${FREERTOS_LIB_SRC}
-    PROPERTIES COMPILE_FLAGS ${STM32_DEFINES}
+    PROPERTIES COMPILE_FLAGS ${STM32F7_DEFINES}
     # STM32_DEFINES are defined in the top level CMakeLists.txt
 )
 

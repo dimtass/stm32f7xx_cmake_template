@@ -24,8 +24,6 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
-#include <FreeRTOS.h>
-#include <task.h>
 #include "comm_buffer.h"
 #include "debug_trace.h"
 #include "timer_sched.h"
@@ -66,8 +64,6 @@ __IO uint32_t rx_timeout = 0;
 
 uint32_t trace_levels;
 
-int k = 0;
-
 /* Benchmark timer object */
 struct obj_timer_t * benchmark_timer;
 
@@ -86,15 +82,6 @@ void dbg_uart_parser(uint8_t *buffer, size_t bufferlen, uint8_t sender);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void task_blink(void *args __attribute__((unused)))
-{
-	while (1)
-	{
-		TRACE(("Thread\n"));
-		vTaskDelay(pdMS_TO_TICKS(500));
-	}
-}
-
 void main_loop()
 {
 	if (glb_tmr_1ms) {
@@ -157,9 +144,6 @@ int main(void)
 			,1);
 
   HAL_UART_Receive_IT(&huart6, (uint8_t*) &tmp_rx, 1);
-
-  xTaskCreate(task_blink, "blink", 100, NULL, configMAX_PRIORITIES - 1, NULL);
-	vTaskStartScheduler();
 
   TRACE(("Program started...\n"));
   /* USER CODE END 2 */

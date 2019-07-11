@@ -1,21 +1,23 @@
 #!/bin/bash -e
 
+# Usage examples: 
+# $ ./build.sh src_cpp
+# $ CLEANBUILD=true ./build.sh src_cpp
+# $ CLEANBUILD=true USE_HAL_DRIVER=ON ./build.sh src_cpp_hal
+# $ CLEANBUILD=true USE_HAL_DRIVER=ON USE_FREERTOS=ON ./build.sh src_cpp_freertos
+
 echo "Building the project in Linux environment"
 
 # Toolchain path
-: ${TOOLCHAIN_DIR:="/opt/toolchains/gcc-arm-none-eabi-7-2018-q2-update"}
+: ${TOOLCHAIN_DIR:="/opt/toolchains/gcc-arm-none-eabi-8-2018-q4-major"}
 # select cmake toolchain
-: ${CMAKE_TOOLCHAIN:=TOOLCHAIN_arm_none_eabi_cortex_m3.cmake}
+: ${CMAKE_TOOLCHAIN:=TOOLCHAIN_arm_none_eabi_cortex_m7.cmake}
 # select to clean previous builds
 : ${CLEANBUILD:=false}
 # select to create eclipse project files
 : ${ECLIPSE_IDE:=false}
-# Select Stdperiph lib use
-: ${USE_STDPERIPH_DRIVER:="OFF"}
-# Select Stdperiph lib use
-: ${USE_STM32_USB_FS_LIB:="OFF"}
-# Select Stdperiph lib use
-: ${USE_LIBOPENCM3:="OFF"}
+# Select HAL/LL lib use
+: ${USE_HAL_DRIVER:="OFF"}
 # Select Stdperiph lib use
 : ${USE_FREERTOS:="OFF"}
 # Select source folder. Give a false one to trigger an error
@@ -47,9 +49,7 @@ if [ "${ARCHITECTURE}" == "stm32" ]; then
     CMAKE_FLAGS="${CMAKE_FLAGS} \
                 -DTOOLCHAIN_DIR=${TOOLCHAIN_DIR} \
                 -DCMAKE_TOOLCHAIN_FILE=${SCRIPTS_CMAKE}/${CMAKE_TOOLCHAIN} \
-                -DUSE_STDPERIPH_DRIVER=${USE_STDPERIPH_DRIVER} \
-                -DUSE_STM32_USB_FS_LIB=${USE_STM32_USB_FS_LIB} \
-                -DUSE_LIBOPENCM3=${USE_LIBOPENCM3} \
+                -DUSE_HAL_DRIVER=${USE_HAL_DRIVER} \
                 -DUSE_FREERTOS=${USE_FREERTOS} \
                 -DSRC=${SRC} \
                 "

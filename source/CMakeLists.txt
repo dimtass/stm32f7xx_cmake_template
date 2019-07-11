@@ -4,22 +4,33 @@ cmake_minimum_required(VERSION 3.6)
 
 project(stm32-cmake-template LANGUAGES C CXX)
 
-option(USE_STDPERIPH_DRIVER "Use stdperiph library" OFF)
-option(USE_STM32_USB_FS_LIB "Use the STM32 USB FS device driver lib" OFF) 
-option(USE_LIBOPENCM3 "Use openlibcm3 library" OFF)
+option(USE_HAL_DRIVER "Use stdperiph library" OFF)
 option(USE_FREERTOS "Use FreeRTOS" OFF)
 
+set(DEVICE_CONFIG_DIR ${CMAKE_SOURCE_DIR}/libs/CMSIS/Device/ST/STM32F7xx)
+
+# Include toolchain (toolchain path )
+include(cmake/TOOLCHAIN_arm_none_eabi_cortex_m7.cmake)
+# If the toolchain path is not set in the build scsript then add it here${DEVICE_CONFIG_DIR}
+# or in the toolchain cmake file
+# set(TOOLCHAIN_DIR "/opt/toolchains/gcc-arm-none-eabi-8-2018-q4-major")
+
+# Define the hardware
+set(OTHER_SRC_FILES "${DEVICE_CONFIG_DIR}/system_stm32f7xx.c")
+
 # Set STM32 SoC specific variables
-set(STM32_DEFINES " \
+set(STM32F7_DEFINES " \
     -DIVECT_TAB_OFFSET=0x0 \
-    -DSTM32F1 \
-    -DSTM32F103C8Tx \
-    -DSTM32 \
-    -DSTM32F10X_MD \
+    -DSTM32F746xx \
     ")
 
 # set compiler optimisations
 set(COMPILER_OPTIMISATION "-g -O3")
+
+# add startup and linker file
+set(STARTUP_ASM_FILE "${CMAKE_SOURCE_DIR}/config/startup/startup_stm32f746xx.s")
+set_property(SOURCE ${STARTUP_ASM_FILE} PROPERTY LANGUAGE ASM)
+set(LINKER_FILE "${CMAKE_SOURCE_DIR}/config/linkerfiles/STM32F746NGHx_AXIM-FLASH.ld")
 
 # Only build for arm-none-eabi
 if (NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "arm-none-eabi")
@@ -27,22 +38,9 @@ if (NOT CMAKE_SYSTEM_PROCESSOR STREQUAL "arm-none-eabi")
 endif()
 
 # CMSIS shared library
-# Standard Peripheral Driver shared library
-if (USE_STDPERIPH_DRIVER)
-    include(cmake/stdperiph.cmake)
-endif()
-
-# USB FS Device Driver Library
-if (USE_STM32_USB_FS_LIB)
-    include(cmake/stm32_usb_fs_driver.cmake)
-    # add_subdirectory(STM32_USB-FS-Device_Driver)
-    # set(STM32_USB_FS_DEVICE_INC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/STM32_USB-FS-Device_Driver/inc)
-    # include_directories(${STM32_USB_FS_DEVICE_INC_DIR})
-endif()
-
-# libopencm3
-if (USE_LIBOPENCM3)
-    include(cmake/libopencm3.cmake)
+# HAL Driver shared library
+if (USE_HAL_DRIVER)
+    include(cmake/stm32f7_hal_driver.cmake)
 endif()
 
 # FreeRTOS Library
@@ -50,12 +48,8 @@ if (USE_FREERTOS)
     include(cmake/freertos.cmake)
 endif()
 
+# Add the arch independent C lib
 include (cmake/noarch_c_lib.cmake)
-
-include (cmake/stm32_dimtass_lib.cmake)
-
-# add_custom_target(combined ALL
-#   COMMAND ${CMAKE_AR} rc libcombined.a $<TARGET_FILE:stdperiph> $<TARGET_FILE:stm32dimtasslib>)
 
 # force stm builds to debug.  This is a hack as when release is set, it automatically 
 # sets the invalid -O3 flag on the assembler.
@@ -68,16 +62,18 @@ create_language_provider("${CMAKE_BINARY_DIR}/.settings" "${GCC_PREFIX}-" "${CXX
 
 # enable asm for stm startup.s file
 enable_language(ASM)
-# Custom STM32 options for assembler and gcc
-set(STM32_ASM_OPTIONS "-mcpu=cortex-m3 -mthumb -mlittle-endian -mthumb-interwork ")
-set(STM32_COMPILER_OPTIONS "${STM32_ASM_OPTIONS} -mfloat-abi=soft -Wall -Werror -Wl,-Map=output.map -Wl,--gc-sections -lc -lm ")
-# Set project options
-SET(CMAKE_C_FLAGS "${STM32_COMPILER_OPTIONS} ${COMPILER_OPTIMISATION} --specs=nano.specs -std=c11" CACHE INTERNAL "c compiler flags")
-SET(CMAKE_CXX_FLAGS "${STM32_COMPILER_OPTIONS} ${COMPILER_OPTIMISATION} --specs=nano.specs -std=c++11 " CACHE INTERNAL "cxx compiler flags")
-SET(CMAKE_ASM_FLAGS "${STM32_ASM_OPTIONS}" CACHE INTERNAL "asm compiler flags")
-# -mthumb -mcpu=cortex-m3 -mfix-cortex-m3-ldrd   -Wl,-Map=linker.map -Wl,-cref  -Wl,--gc-sections
-SET(CMAKE_EXE_LINKER_FLAGS "${STM32_COMPILER_OPTIONS} ${LIBOPENCM3_LINKER_FLAGS} -Wl,-Map=linker.map -Wl,-cref -Wl,--gc-sections" CACHE INTERNAL "exe link flags")
-set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${COMPILER_OPTIONS} -T${LINKER_FILE}")
+
+## Override toolchain flags ##
+# CFLAGS
+set (CMAKE_C_FLAGS "-g -mthumb -fno-builtin -mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=softfp -Wall -std=gnu99 -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs -fno-unroll-loops -ffast-math -ftree-vectorize" CACHE INTERNAL "c compiler flags")
+set (CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -D USE_HAL_DRIVER -D STM32F746xx")
+# CXXFLAGS
+set (CMAKE_CXX_FLAGS "-g -mthumb -fno-builtin -mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=softfp -Wall -std=c++11 -ffunction-sections -fdata-sections -fomit-frame-pointer -mabi=aapcs -fno-unroll-loops -ffast-math -ftree-vectorize" CACHE INTERNAL "cxx compiler flags")
+# ASMFLAGS
+set (CMAKE_ASM_FLAGS "-g -mthumb -mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=softfp" CACHE INTERNAL "asm compiler flags")
+# LDFLAGS
+set (CMAKE_EXE_LINKER_FLAGS "-g -Wl,--gc-sections -mthumb -mcpu=cortex-m7 -mfpu=fpv5-sp-d16 -mfloat-abi=softfp -mabi=aapcs" CACHE INTERNAL "executable linker flags")
+set (CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T ${LINKER_FILE}")
 
 message(STATUS "System Processor      : ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS
@@ -88,10 +84,8 @@ message(STATUS
     "   ld flags        : ${CMAKE_EXE_LINKER_FLAGS}\n"
     "   optimizations   : ${COMPILER_OPTIMISATION}\n"
     "   CMSIS           : ${CMSIS_DIR}\n"
-    "   StdPeriph       : ${STDPERIPH_DIR}\n"
-    "   USB FS includes : ${STM32_USB_FS_DEVICE_INC_DIR}\n"
+    "   HAL library     : ${STDPERIPHSTM32F7_HAL_DRIVER_DIR_DIR}\n"
     "   FreeRTOS        : ${FREERTOS_INC_DIR}\n"
-    "   libopencm3      : ${LIBOPENCM3_INC_DIR}\n"
 )
 
 
