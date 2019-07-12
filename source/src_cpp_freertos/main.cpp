@@ -43,6 +43,14 @@
 #define DEBUG_PORT GPIOG
 #define DEBUG_PIN GPIO_PIN_7
 
+#ifdef __GNUC__
+  /* With GCC/RAISONANCE, small printf (option LD Linker->Libraries->Small printf
+     set to 'Yes') calls __io_putchar() */
+  #define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+  #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif /* __GNUC__ */
+
 /* Uncomment to overclock to 295 MHz */
 //#define OVERCLOCK
 
@@ -328,11 +336,18 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *UartHandle)
 }
 
 
-int __io_putchar(int ch)
+#ifdef __cplusplus
+ extern "C" {
+#endif
+PUTCHAR_PROTOTYPE
 {
-	HAL_UART_Transmit(&huart6, (uint8_t*) &ch, 1, 10);
-	return ch;
+        HAL_UART_Transmit(&huart6, (uint8_t*) &ch, 1, 10);
+        return ch;
 }
+#ifdef __cplusplus
+}
+#endif
+
 /* USER CODE END 4 */
 
 /**
