@@ -1,4 +1,4 @@
-STM32F103 cmake template
+STM32F7xx cmake template
 ----
 
 This is a template cmake project for the stm32f7xx. So what's
